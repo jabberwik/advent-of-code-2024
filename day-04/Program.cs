@@ -150,9 +150,8 @@ for (var y = 1; y < source[x].Length - 1; y++)
 {
   if (source[x][y] != 'A') continue;
     
-  foreach (var search in GetXShapedMasSearches(x, y))
-  {
-    if (search.All(target => source[target.X][target.Y] == target.Char)) xShapedMasCount++;
-  }
+  if (GetXShapedMasSearches(x, y).Any(search =>
+    search.All(target => source[target.X][target.Y] == target.Char)))
+      xShapedMasCount++;
 }
 Console.WriteLine(xShapedMasCount);
