@@ -2,7 +2,12 @@
  * Advent of Code 2024, Day 11
  */
 
+using System.Collections.Concurrent;
+
 var input = File.ReadAllText("input.txt").Split(' ').Select(long.Parse).ToArray();
+
+// We see lots of repeat evaluations so cache the results
+ConcurrentDictionary<(long Stone, int RemainingBlinks), long> cache = new();
 
 var part1Solution = input.AsParallel().Sum(x => Blink(x, 25));
 Console.WriteLine($"Part 1: {part1Solution}");
@@ -14,23 +19,43 @@ return;
 
 long Blink(long stone, int blinkCount, int blinks = 0)
 {
-    while (blinks < blinkCount)
+    // Check if we have done this before
+    var cacheKey = (stone, blinkCount - blinks);
+    if (cache.TryGetValue(cacheKey, out var cachedResult)) return cachedResult;
+
+    // If we're at the target blink depth, we're done as one stone
+    if (blinks >= blinkCount) return 1;
+
+    long result;
+    if (stone == 0)
     {
-        if (stone == 0)
+        result = Blink(1, blinkCount, blinks + 1);
+    }
+    else
+    {
+        var digits = CountDigits(stone);
+        if (digits % 2 == 0)
         {
-            stone = 1;
-            blinks += 1;
-            continue;
+            // Split number mathematically
+            var leftHalf = stone / (long)Math.Pow(10, digits / 2);
+            var rightHalf = stone % (long)Math.Pow(10, digits / 2);
+
+            result = Blink(leftHalf, blinkCount, blinks + 1) +
+                     Blink(rightHalf, blinkCount, blinks + 1);
         }
-
-        var digits = stone.ToString();
-        if (digits.Length % 2 == 0)
-            return Blink(long.Parse(digits[..(digits.Length / 2)]), blinkCount, blinks + 1) +
-                   Blink(long.Parse(digits[(digits.Length / 2)..]), blinkCount, blinks + 1);
-
-        stone *= 2024;
-        blinks += 1;
+        else
+        {
+            result = Blink(stone * 2024, blinkCount, blinks + 1);
+        }
     }
 
-    return 1;
+    // Cache the result before returning
+    cache[cacheKey] = result;
+    return result;
+}
+
+int CountDigits(long number)
+{
+    if (number == 0) return 1;
+    return (int)Math.Floor(Math.Log10(number)) + 1;
 }
